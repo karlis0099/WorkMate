@@ -6,15 +6,43 @@ A Java desktop application that runs silently in the system tray and serves a mo
 
 ## Screenshots
 
+### System Tray
+![System Tray](docs/tray.png)
+
+### Login
+![Login](docs/login.png)
+
 ### Employee Portal
-| Directory | Weekly Check-in | My Profile |
-|-----------|----------------|------------|
-| ![Directory](docs/directory.png) | ![Check-in](docs/checkin.png) | ![Profile](docs/profile.png) |
+
+**Directory & Profile**
+
+| Weekly Check-in | My Profile |
+|----------------|------------|
+| ![Check-in](docs/checkin.png) | ![Profile](docs/profile.png) |
+
+**Check-in form**
+
+| Work Context & Reflection | Issue Flags |
+|--------------------------|-------------|
+| ![Reflection](docs/checkin-reflection.png) | ![Flags](docs/checkin-flags.png) |
+
+**Check-in closed (outside Thu–Fri window)**
+
+![Check-in Locked](docs/checkin-locked.png)
 
 ### Manager Portal
-| Dashboard | Team Directory | Survey Data |
-|-----------|---------------|-------------|
-| ![Dashboard](docs/dashboard.png) | ![Team Directory](docs/team-directory.png) | ![Survey Data](docs/survey-data.png) |
+
+**Dashboard**
+
+![Dashboard](docs/dashboard.png)
+
+**Team Directory**
+
+![Team Directory](docs/team-directory.png)
+
+**Survey Data**
+
+![Survey Data](docs/survey-data.png)
 
 ---
 
