@@ -20,12 +20,24 @@ A Java desktop application that runs silently in the system tray and serves a mo
 
 ## Features
 
-- **Employee portal** — Company directory, weekly wellbeing check-in, personal profile
-- **Weekly check-in** — 7 psychological wellbeing sliders + open-text reflection questions (available Thu–Fri only)
-- **Manager dashboard** — 4 key metrics, 5-dimension weekly bar chart, burnout risk alerts
-- **Survey data view** — grouped by week with date ranges, colour-coded cells, team averages, CSV export
+### Employee Portal
+- **Contact Directory** — searchable, filterable card grid of all colleagues: name, position, department, email, phone
+- **Weekly Check-in** — 7 psychological wellbeing sliders + open-text reflection questions (configurable days)
+- **Real-time wellbeing score** — composite score updates live as sliders are moved
+- **My Profile** — personal contact card with HR contact button and PIN change
+- **Secure login** — select name + 4-digit PIN (default `1234`, changeable by employee or manager)
+
+### Manager Portal
+- **Dashboard** — 4 key metrics, 5-dimension weekly bar chart (vanilla Canvas), burnout risk alerts
+- **Team Directory** — full employee list with Add Employee and PIN Reset per employee
+- **Survey Data** — grouped by week, heat-map coloured cells, team averages, CSV export
+
+### Platform
+- **SQLite persistence** — all data survives restarts (no data loss)
+- **Auth** — SHA-256+salt for both manager password and employee PINs; UUID session tokens (8h expiry)
+- **Burnout webhook** — Slack/Teams-compatible POST on HIGH-risk submission
 - **System tray** — app lives only in the menu/taskbar; tray click opens the browser
-- **Network-ready** — binds to all interfaces so colleagues on the same LAN or VPN can connect
+- **Configurable** — `workmate.properties` controls port, check-in window, webhook URL, and more
 
 ---
 
@@ -43,7 +55,7 @@ A Java desktop application that runs silently in the system tray and serves a mo
 
 Plus: workload feel, team communication quality, open reflection (what went well / challenges / support needed).
 
-**Risk levels** are computed from a weighted composite score across all dimensions.
+**Composite score** = (mood + energy + motivation + wlb + teamConnection + accomplishment + (11−stress)) / 7
 
 ---
 
@@ -51,126 +63,11 @@ Plus: workload feel, team communication quality, open reflection (what went well
 
 | Algorithm | Location | Complexity |
 |-----------|----------|------------|
-| Bubble Sort | `EmployeeDirectory.sortByName()` | O(n²) |
-| Linear Search | `EmployeeDirectory.findByName()` | O(n) |
-| Binary Search | `EmployeeDirectory.binarySearch()` | O(log n) |
+| Merge sort via Collections.sort() | `EmployeeDirectory.sortByName()` | O(n log n) |
+| Linear search | `EmployeeDirectory.findByName()` | O(n) |
+| Binary search | `EmployeeDirectory.binarySearch()` | O(log n) |
 | Stack push/pop | `SurveyManager` activity log | O(1) |
 | Queue enqueue/dequeue | `SurveyManager` reminder queue | O(1) |
-
----
-
-## Quick Start (local / developer)
-
-```bash
-# 1. Compile
-cd WorkMate
-find src -name "*.java" > sources.txt
-javac -d out @sources.txt
-
-# 2. Run
-java -cp out com.workmate.WorkMateApp
-
-# 3. Open browser (opens automatically)
-open http://localhost:8765
-```
-
-**Login credentials**
-- Employee: select name → Continue as Employee
-- Manager: Manager Login → password `admin`
-
----
-
-## Deployment on Windows Server
-
-### Option A — Run as a background process (quick demo)
-
-```bat
-java -cp out com.workmate.WorkMateApp
-```
-
-Access from other machines on the same network:
-```
-http://<server-ip>:8765
-```
-
-### Option B — Run as a Windows Service (production)
-
-Use **NSSM** (Non-Sucking Service Manager) to run WorkMate as a proper Windows service that starts on boot.
-
-1. Download NSSM from https://nssm.cc/download
-2. Open Command Prompt as Administrator:
-
-```bat
-nssm install WorkMate "C:\Program Files\Java\jdk-25\bin\java.exe"
-```
-
-3. In the NSSM dialog set:
-   - **Path**: `C:\Program Files\Java\jdk-25\bin\java.exe`
-   - **Arguments**: `-cp C:\WorkMate\out com.workmate.WorkMateApp`
-   - **Startup directory**: `C:\WorkMate`
-
-4. Start the service:
-
-```bat
-nssm start WorkMate
-```
-
-To stop or remove:
-```bat
-nssm stop WorkMate
-nssm remove WorkMate
-```
-
-### Option C — JAR + startup script
-
-```bash
-# Build JAR
-jar cfm WorkMate.jar manifest.txt -C out .
-
-# Run
-java -jar WorkMate.jar
-```
-
-`manifest.txt`:
-```
-Main-Class: com.workmate.WorkMateApp
-```
-
----
-
-## Multi-User / VPN Setup
-
-WorkMate binds to **all network interfaces** (0.0.0.0) by default. This means:
-
-1. Run WorkMate on a central server (Windows or Linux)
-2. Ensure port **8765** is open in the Windows Firewall:
-   ```bat
-   netsh advfirewall firewall add rule name="WorkMate" dir=in action=allow protocol=TCP localport=8765
-   ```
-3. Employees connect via browser:
-   ```
-   http://<server-ip>:8765
-   ```
-   or via VPN hostname:
-   ```
-   http://workmate.company.internal:8765
-   ```
-
-### Recommended network setup
-
-```
-[Employee laptops]  ──VPN──  [Company Server: WorkMate :8765]
-[HR workstation]    ──LAN──  [Company Server: WorkMate :8765]
-```
-
-> **Security note:** WorkMate is a demo/course project. For production use, add HTTPS (reverse proxy with nginx/IIS + Let's Encrypt) and replace the hardcoded password with proper authentication.
-
-### Change the port
-
-Edit `WorkMateApp.java` line:
-```java
-static final int PORT = 8765;
-```
 
 ---
 
@@ -179,19 +76,181 @@ static final int PORT = 8765;
 ```
 WorkMate/
 ├── src/com/workmate/
-│   ├── WorkMateApp.java          — entry point, tray, data init, web server start
+│   ├── WorkMateApp.java              — entry point, tray, DB init, graceful shutdown
+│   ├── config/
+│   │   └── AppConfig.java            — reads workmate.properties, typed accessors
 │   ├── model/
-│   │   ├── Employee.java         — base class (id, name, position, dept, email, phone)
-│   │   ├── Manager.java          — extends Employee, adds teamSize
-│   │   ├── SurveyResponse.java   — 7-dimension check-in + risk scoring
-│   │   ├── EmployeeDirectory.java — ArrayList + bubble sort + linear/binary search
-│   │   └── SurveyManager.java    — responses, Stack activity log, Queue reminders
+│   │   ├── Employee.java             — base entity (id, name, position, dept, email, phone)
+│   │   ├── Manager.java              — extends Employee with teamSize
+│   │   ├── SurveyResponse.java       — 7-dim check-in, ISO week key, risk + composite score
+│   │   ├── EmployeeDirectory.java    — in-memory demo registry (sort/search)
+│   │   └── SurveyManager.java        — in-memory aggregation (Stack log, Queue reminders)
 │   ├── service/
-│   │   ├── WebServer.java        — embedded HTTP server, REST API, full HTML/JS/CSS
-│   │   └── NotificationService.java — system tray notifications
+│   │   ├── WebServer.java            — routing only, no HTML — serves static from resources/
+│   │   ├── DataStore.java            — SQLite CRUD for employees + survey_responses
+│   │   ├── AuthService.java          — SHA-256+salt hash, UUID sessions with 8h expiry
+│   │   └── NotificationService.java  — tray bubbles + async Slack/Teams webhook
 │   └── util/
-│       └── LogoDrawer.java       — Java2D tray icon
+│       └── LogoDrawer.java           — Java2D programmatic tray icon
+├── resources/
+│   └── static/
+│       ├── css/
+│       │   └── app.css               — Clinical Warmth dark design system
+│       ├── js/
+│       │   └── app.js                — vanilla JS SPA (no frameworks)
+│       └── index.html                — app shell (login + employee + manager views)
+├── lib/
+│   └── sqlite-jdbc.jar               — SQLite JDBC driver (download — see Setup)
+├── workmate.properties               — runtime configuration
+├── build.sh                          — compile + run script
 └── README.md
+```
+
+---
+
+## Setup & Quick Start
+
+### 1. Download the SQLite JDBC driver
+
+```bash
+# Create the lib directory
+mkdir -p lib
+
+# Download the JAR (version 3.45+ recommended)
+curl -L -o lib/sqlite-jdbc.jar \
+  https://github.com/xerial/sqlite-jdbc/releases/download/3.45.1.0/sqlite-jdbc-3.45.1.0.jar
+```
+
+Or download manually from: https://github.com/xerial/sqlite-jdbc/releases
+
+### 2. Build & Run
+
+```bash
+./build.sh
+```
+
+This compiles all Java sources, copies static resources onto the classpath, and launches the application. A browser tab opens automatically.
+
+**Manual steps (without the script):**
+
+```bash
+# Compile
+mkdir -p out
+cp -r resources/static out/static
+find src -name "*.java" > /tmp/sources.txt
+javac -cp lib/sqlite-jdbc.jar -d out @/tmp/sources.txt
+
+# Run
+java -cp out:lib/sqlite-jdbc.jar com.workmate.WorkMateApp
+```
+
+On Windows, replace `:` with `;` in `-cp`.
+
+### 3. First-run setup
+
+On first launch, WorkMate shows a **Setup** screen to create the manager password. After that:
+
+- **Employee login**: select your name → enter 4-digit PIN (default `1234`) → Continue
+- **Manager login**: click "Manager Login" → enter the password you set during Setup
+
+Each employee can change their own PIN from **My Profile → Change my PIN**.
+A manager can reset any employee's PIN from **Team Directory → employee card → Reset PIN**.
+
+---
+
+## Configuration (`workmate.properties`)
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `server.port` | `8765` | HTTP port |
+| `server.bind` | `0.0.0.0` | Bind address (all interfaces) |
+| `checkin.days` | `4,5` | ISO weekdays check-in is open (4=Thu, 5=Fri) |
+| `checkin.hour.start` | `0` | Hour (0-23) check-in window opens |
+| `checkin.hour.end` | `23` | Hour (0-23) check-in window closes |
+| `admin.session.hours` | `8` | Session token validity |
+| `notification.webhook.url` | _(empty)_ | Slack/Teams webhook URL |
+| `notification.webhook.enabled` | `false` | Enable webhook notifications |
+| `burnout.alert.threshold` | `4.5` | Composite score below which HIGH risk is flagged |
+
+---
+
+## REST API
+
+All endpoints return JSON. Manager-only endpoints require `Authorization: Bearer <token>`.
+
+### Auth
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| `POST` | `/api/auth/login` | — | Login (employee or manager) |
+| `POST` | `/api/auth/logout` | any | Invalidate session |
+| `GET`  | `/api/auth/me` | any | Current session identity |
+| `POST` | `/api/auth/setup` | — | First-run password setup |
+
+**Login body (employee):**
+```json
+{ "type": "employee", "employeeId": 1, "pin": "1234" }
+```
+**Login body (manager):**
+```json
+{ "type": "manager", "password": "yourpassword" }
+```
+**Response:**
+```json
+{ "token": "uuid-string", "role": "MANAGER", "name": "Manager" }
+```
+
+### Employees
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| `GET`  | `/api/employees` | any | List all employees (sorted by name) |
+| `POST` | `/api/employees` | manager | Create employee |
+| `GET`  | `/api/employees/{id}` | any | Get one employee |
+| `PUT`  | `/api/employees/{id}` | manager | Update employee |
+
+### Survey
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| `GET`  | `/api/survey/responses` | manager | All responses (`?week=2026-W18&employee_id=1`) |
+| `POST` | `/api/survey/responses` | any | Submit check-in |
+| `GET`  | `/api/survey/summary` | manager | Aggregated dashboard metrics |
+| `GET`  | `/api/survey/export/csv` | manager | CSV download |
+
+### Config
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| `GET`  | `/api/config` | — | Public config (port, check-in days, etc.) |
+
+**Error format:**
+```json
+{ "error": true, "code": "UNAUTHORIZED", "message": "Invalid session" }
+```
+
+---
+
+## Deployment on Windows Server
+
+### Quick (foreground process)
+```bat
+java -cp out;lib\sqlite-jdbc.jar com.workmate.WorkMateApp
+```
+
+### As a Windows Service (NSSM)
+1. Download NSSM from https://nssm.cc/download
+2. Open Command Prompt as Administrator:
+```bat
+nssm install WorkMate "C:\Program Files\Java\jdk-25\bin\java.exe"
+```
+3. Set Arguments: `-cp C:\WorkMate\out;C:\WorkMate\lib\sqlite-jdbc.jar com.workmate.WorkMateApp`
+4. Set Startup directory: `C:\WorkMate`
+5. `nssm start WorkMate`
+
+### Firewall rule
+```bat
+netsh advfirewall firewall add rule name="WorkMate" dir=in action=allow protocol=TCP localport=8765
 ```
 
 ---
@@ -199,5 +258,5 @@ WorkMate/
 ## Requirements
 
 - Java 11 or higher (tested on Java 25 Temurin)
-- No external dependencies — uses only the JDK standard library
+- `lib/sqlite-jdbc.jar` (see Setup above)
 - Any modern browser (Chrome, Firefox, Safari, Edge)

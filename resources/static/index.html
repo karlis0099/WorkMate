@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WorkMate — Employee Wellbeing</title>
+<link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<div class="bg-animated"></div>
+
+<!-- ── SETUP PAGE (first run) ─────────────────────────────────────────────── -->
+<div id="page-setup" class="login-page hidden">
+  <div class="setup-card">
+    <div class="login-logo">
+      <svg width="32" height="28" viewBox="0 0 46 40" fill="none">
+        <circle cx="16" cy="12" r="7" fill="white"/>
+        <path d="M2 36c0-7.732 6.268-12 14-12s14 4.268 14 12" stroke="white" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+        <circle cx="34" cy="10" r="5.5" fill="rgba(255,255,255,0.65)"/>
+        <path d="M24.5 36c0-6.075 4.253-9.5 9.5-9.5s9.5 3.425 9.5 9.5" stroke="rgba(255,255,255,0.65)" stroke-width="2" stroke-linecap="round" fill="none"/>
+      </svg>
+    </div>
+    <h2 class="login-title">First-Run Setup</h2>
+    <p class="login-sub">Set the manager password to get started.</p>
+    <div class="field-group">
+      <label class="field-label">Manager Password</label>
+      <input class="field-input" type="password" id="setupPwd" placeholder="Choose a strong password">
+    </div>
+    <div class="field-group">
+      <label class="field-label">Confirm Password</label>
+      <input class="field-input" type="password" id="setupPwd2" placeholder="Repeat password">
+    </div>
+    <div id="setup-err" class="text-muted hidden" style="color:var(--accent-danger);margin-bottom:10px"></div>
+    <button class="btn btn-primary btn-full btn-lg mt-12" onclick="App.submitSetup()">Save &amp; Continue →</button>
+  </div>
+</div>
+
+<!-- ── LOGIN PAGE ──────────────────────────────────────────────────────────── -->
+<div id="page-login" class="login-page hidden">
+  <div class="login-card">
+    <div class="login-logo">
+      <svg width="32" height="28" viewBox="0 0 46 40" fill="none">
+        <circle cx="16" cy="12" r="7" fill="white"/>
+        <path d="M2 36c0-7.732 6.268-12 14-12s14 4.268 14 12" stroke="white" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+        <circle cx="34" cy="10" r="5.5" fill="rgba(255,255,255,0.65)"/>
+        <path d="M24.5 36c0-6.075 4.253-9.5 9.5-9.5s9.5 3.425 9.5 9.5" stroke="rgba(255,255,255,0.65)" stroke-width="2" stroke-linecap="round" fill="none"/>
+      </svg>
+    </div>
+    <h1 class="login-title">WorkMate</h1>
+    <p class="login-sub">Employee Wellbeing Platform</p>
+
+    <label class="field-label">Select your name</label>
+    <div class="emp-list" id="empList">
+      <div style="padding:20px;text-align:center;color:var(--text-muted)">Loading…</div>
+    </div>
+
+    <button class="btn btn-primary btn-full btn-lg mt-16" onclick="App.loginEmployee()">
+      Continue as Employee →
+    </button>
+
+    <div class="login-divider">or</div>
+
+    <button class="btn btn-ghost btn-full" onclick="App.showManagerModal()">
+      🔐 Manager / HR Login
+    </button>
+  </div>
+</div>
+
+<!-- ── APP SHELL ───────────────────────────────────────────────────────────── -->
+<div id="page-app" class="hidden" style="display:flex;flex-direction:column;height:100vh;">
+
+  <header class="topbar">
+    <div class="topbar-brand">
+      <div class="topbar-logo">
+        <svg width="20" height="18" viewBox="0 0 46 40" fill="none">
+          <circle cx="16" cy="12" r="7" fill="white"/>
+          <path d="M2 36c0-7.732 6.268-12 14-12s14 4.268 14 12" stroke="white" stroke-width="3" fill="none"/>
+          <circle cx="34" cy="10" r="5.5" fill="rgba(255,255,255,0.65)"/>
+          <path d="M24.5 36c0-6.075 4.253-9.5 9.5-9.5s9.5 3.425 9.5 9.5" stroke="rgba(255,255,255,0.65)" stroke-width="2.5" fill="none"/>
+        </svg>
+      </div>
+      <div>
+        <div class="topbar-name">WorkMate</div>
+        <div class="topbar-sub" id="topbarRole"></div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="topbar-user">
+        <span id="topbarAvatar" class="avatar avatar-sm"></span>
+        <span id="topbarName"></span>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="App.logout()">Logout</button>
+    </div>
+  </header>
+
+  <nav class="tab-bar" id="tabBar"></nav>
+
+  <div class="tab-content" id="tabContent"></div>
+</div>
+
+<!-- ── OVERLAY / MODAL ─────────────────────────────────────────────────────── -->
+<div class="overlay hidden" id="overlay" onclick="if(event.target===this)App.closeModal()">
+  <div class="modal" id="modalBody"></div>
+</div>
+
+<script src="/js/app.js"></script>
+</body>
+</html>

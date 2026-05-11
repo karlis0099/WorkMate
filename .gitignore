@@ -3,3 +3,6 @@ out/
 *.jar
 sources.txt
 .DS_Store
+workmate.db
+manifest.txt
+/tmp/
